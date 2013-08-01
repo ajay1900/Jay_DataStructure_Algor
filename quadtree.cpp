@@ -64,7 +64,6 @@ public:
       for(size_t i=0; i<objsT.size(); i++)
       {
         int idxT=_GetIndex(objsT[i]);
-        cout << "insert:   " << objsT[i]->x << " " << objsT[i]->y << " " << idxT << endl;
         if(idxT!=-1)
           _subNodes[idxT]->Insert(objsT[i]);
         else
@@ -119,15 +118,41 @@ private:
   int _GetIndex(Rect* obj)
   {
     int idx=-1;
-    for(size_t i=0; i<_subNodes.size(); i++)
+    //for(size_t i=0; i<_subNodes.size(); i++)
+    //{
+    //  if(_subNodes[i]->_bd.Contains(obj))
+    //  {
+    //    idx = i;
+    //    break;
+    //  }
+    //}
+
+    //this could be further optimized: just return bit operation of bPt1X bPt1Y
+    //but, we need to redefine subNodes to be: (counterclosewise: 11 01 00 10, which is: 3, 1, 0, 2)
+    bool bPt1X = obj->x > _bd.x+_bd.w/2;
+    bool bPt2X = obj->x+obj->w > _bd.x+_bd.w/2;
+    if(bPt1X^bPt2X)
+      return -1;
+
+    bool bPt1Y = obj->y > _bd.y+_bd.h/2;
+    bool bPt2Y = obj->y+obj->h > _bd.y+_bd.h/2;
+    if(bPt1Y^bPt2Y)
+      return -1;
+
+    if(bPt1X)
     {
-      if(_subNodes[i]->_bd.Contains(obj))
-      {
-        idx = i;
-        break;
-      }
+      if(bPt1Y)
+        return 0;
+      else
+        return 3;
     }
-    return idx;
+    else
+    {
+      if(bPt1Y)
+        return 1;
+      else
+        return 2;
+    }
   }
 
   vector<Rect* > _objs;  
