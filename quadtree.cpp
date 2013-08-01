@@ -13,32 +13,32 @@ static int MAX_C = 2;
 
 struct Rect
 {
-  Rect(float ctXVal, float ctYVal, float xVal2, float yVal2):ctX(ctXVal), 
-      ctY(ctYVal), x2(xVal2), y2(yVal2)
+  Rect(float xVal, float yVal, float wVal, float hVal):x(xVal), 
+    y(yVal), w(wVal), h(hVal)
   {
   }
-  
+
   bool Contains(Rect* rt)
   {
-    return (rt->ctX > ctX)
-         &&(rt->ctY > ctY)
-         &&(rt->ctX+rt->x2 < ctX+x2)
-         &&(rt->ctY+rt->y2 < ctY+y2);
+    return (rt->x > x)
+      &&(rt->y > y)
+      &&(rt->x+rt->w < x+w)
+      &&(rt->y+rt->h < y+h);
   }
-  
-  float ctX;
-  float ctY;
-  float x2;//halfX
-  float y2;//halfY
+
+  float x;
+  float y;
+  float w;
+  float h;
 };
 
 class Node
 {
 public:
-  Node(float ctX, float ctY, float x, float y):_bd(ctX, ctY, x, y)
+  Node(float x, float y, float w, float h):_bd(x, y, w, h)
   {
   }
-  
+
   void Insert(Rect* obj)
   {
     if(_subNodes.size()>0)
@@ -50,12 +50,12 @@ public:
         return;
       }
     }
-    
+
     _objs.push_back(obj);
-    
+
     //if splited already, then, _objs should only contain objs which don't belong to any subnodes,
     //so, don't bother to split again!
-    
+
     if( _subNodes.size()<1 && _objs.size() > MAX_C)
     {
       Split();
@@ -64,7 +64,7 @@ public:
       for(size_t i=0; i<objsT.size(); i++)
       {
         int idxT=_GetIndex(objsT[i]);
-        cout << "insert:   " << objsT[i]->ctX << " " << objsT[i]->ctY << " " << idxT << endl;
+        cout << "insert:   " << objsT[i]->x << " " << objsT[i]->y << " " << idxT << endl;
         if(idxT!=-1)
           _subNodes[idxT]->Insert(objsT[i]);
         else
@@ -72,15 +72,15 @@ public:
       }
     }
   }
-  
+
   void Split()
   {
     if(_subNodes.size()<1)
     {
-      _subNodes.push_back(new Node(_bd.ctX+_bd.x2/2, _bd.ctY+_bd.y2/2, _bd.x2/2, _bd.y2/2));
-      _subNodes.push_back(new Node(_bd.ctX-_bd.x2/2, _bd.ctY+_bd.y2/2, _bd.x2/2, _bd.y2/2));
-      _subNodes.push_back(new Node(_bd.ctX-_bd.x2/2, _bd.ctY-_bd.y2/2, _bd.x2/2, _bd.y2/2));
-      _subNodes.push_back(new Node(_bd.ctX+_bd.x2/2, _bd.ctY-_bd.y2/2, _bd.x2/2, _bd.y2/2));
+      _subNodes.push_back(new Node(_bd.x+_bd.w/2, _bd.y+_bd.h/2, _bd.w/2, _bd.h/2));
+      _subNodes.push_back(new Node(_bd.x,         _bd.y+_bd.h/2, _bd.w/2, _bd.h/2));
+      _subNodes.push_back(new Node(_bd.x,         _bd.y,         _bd.w/2, _bd.h/2));
+      _subNodes.push_back(new Node(_bd.x+_bd.w/2, _bd.y,         _bd.w/2, _bd.h/2));
     }
   }
 
@@ -97,22 +97,22 @@ public:
       Rect* obj= _subNodes[idx]->Search(x,y);
       return obj;
     }
-      
+
     for(size_t i=0; i<_objs.size(); i++)
     {
       if(_objs[i]->Contains(&rect))
         return _objs[i];
     }
-    
+
     return NULL;
   }
-  
+
   void Output()
   {
     cout << "Node: " << endl;
     for(size_t i=0; i<_objs.size(); i++)
     {
-      cout << _objs[i]->ctX << "\t" <<_objs[i]->ctY <<endl;  
+      cout << _objs[i]->x << "\t" <<_objs[i]->y <<endl;  
     }
   }  
 private:
@@ -129,7 +129,7 @@ private:
     }
     return idx;
   }
-    
+
   vector<Rect* > _objs;  
 public:  
   vector<Node* > _subNodes;//size: 4, if octtree, then, 8
@@ -154,25 +154,25 @@ void Output_BFS(Node* root)
 
 int main()
 {
-  Node* qtree = new Node(5,5,5,5);//0,0,1000,1000 square
-  
+  Node* qtree = new Node(0,0,10,10);
+
   qtree->Insert(new Rect(3,3,0.5,0.5));
   qtree->Insert(new Rect(8,8,0.5,0.5));
-  qtree->Insert(new Rect(7,7,0.5,0.5));
+  qtree->Insert(new Rect(7.1,7.1,0.5,0.5));
   qtree->Insert(new Rect(8,3,0.5,0.5));
   qtree->Insert(new Rect(4,2,0.5,0.5));
   qtree->Insert(new Rect(3,8,0.5,0.5));
   qtree->Insert(new Rect(8.3,8.3,0.5,0.5));
   qtree->Insert(new Rect(8,6,0.5,0.5));
   qtree->Insert(new Rect(4.8,4.8,0.5,0.5));
-  
+
   Output_BFS(qtree);
-  
+
   cout << endl;
   cout << "search (8.4, 8.45)" << endl;
   Rect* rt = qtree->Search(8.4,8.45);
   if(rt != NULL)
-    cout << rt->ctX << "\t" << rt->ctY;
+    cout << rt->x << "\t" << rt->y;
   else
     cout << "found nothing!"<<endl;
 }
