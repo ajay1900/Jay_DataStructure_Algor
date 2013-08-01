@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <vector>
+#include <queue>
 
 using namespace std;
 
@@ -12,26 +13,29 @@ static int MAX_C = 2;
 
 struct Rect
 {
-  Rect(int ctXVal, int ctYVal, int xVal2, int yVal2):ctX(ctXVal), 
+  Rect(float ctXVal, float ctYVal, float xVal2, float yVal2):ctX(ctXVal), 
       ctY(ctYVal), x2(xVal2), y2(yVal2)
   {
   }
   
   bool Contains(Rect* rt)
   {
-    return (rt->ctX>ctX)&&(rt->ctY>ctY)&&(rt->x2<x2)&&(rt->y2<y2);
+    return (rt->ctX > ctX)
+         &&(rt->ctY > ctY)
+         &&(rt->ctX+rt->x2 < ctX+x2)
+         &&(rt->ctY+rt->y2 < ctY+y2);
   }
   
-  int ctX;
-  int ctY;
-  int x2;//halfX
-  int y2;//halfY
+  float ctX;
+  float ctY;
+  float x2;//halfX
+  float y2;//halfY
 };
 
 class Node
 {
 public:
-  Node(int ctX, int ctY, int x, int y):_bd(ctX, ctY, x, y)
+  Node(float ctX, float ctY, float x, float y):_bd(ctX, ctY, x, y)
   {
   }
   
@@ -49,14 +53,22 @@ public:
     
     _objs.push_back(obj);
     
-    if(_objs.size() > MAX_C)
+    //if splited already, then, _objs should only contain objs which don't belong to any subnodes,
+    //so, don't bother to split again!
+    
+    if( _subNodes.size()<1 && _objs.size() > MAX_C)
     {
       Split();
-      for(size_t i=0; i<_objs.size(); i++)
+      vector<Rect* > objsT=_objs;
+      _objs.clear();
+      for(size_t i=0; i<objsT.size(); i++)
       {
-        int idxT=_GetIndex(_objs[i]);
+        int idxT=_GetIndex(objsT[i]);
+        cout << "insert:   " << objsT[i]->ctX << " " << objsT[i]->ctY << " " << idxT << endl;
         if(idxT!=-1)
-          _subNodes[idxT]->Insert(_objs[i]);
+          _subNodes[idxT]->Insert(objsT[i]);
+        else
+          _objs.push_back(objsT[i]);
       }
     }
   }
@@ -71,7 +83,38 @@ public:
       _subNodes.push_back(new Node(_bd.ctX+_bd.x2/2, _bd.ctY-_bd.y2/2, _bd.x2/2, _bd.y2/2));
     }
   }
+
+  //find an object which contains (x,y)
+  Rect* Search(float x, float y)
+  {
+    Rect rect(x,y,0,0);
+    //to search _objs first might not be a good idea, it depends on the requirements anyway
+    //if we want to find all _objs who contains (x,y), then, do it.
+    //otherwise, just search subNodes first    
+    int idx=_GetIndex(&rect);
+    if(idx!=-1 && _subNodes.size()>0)
+    {
+      Rect* obj= _subNodes[idx]->Search(x,y);
+      return obj;
+    }
+      
+    for(size_t i=0; i<_objs.size(); i++)
+    {
+      if(_objs[i]->Contains(&rect))
+        return _objs[i];
+    }
+    
+    return NULL;
+  }
   
+  void Output()
+  {
+    cout << "Node: " << endl;
+    for(size_t i=0; i<_objs.size(); i++)
+    {
+      cout << _objs[i]->ctX << "\t" <<_objs[i]->ctY <<endl;  
+    }
+  }  
 private:
   int _GetIndex(Rect* obj)
   {
@@ -87,19 +130,49 @@ private:
     return idx;
   }
     
-  vector<Rect* > _objs;
-  vector<Node* > _subNodes;//size: 4, if octtree, then, 8
-  
+  vector<Rect* > _objs;  
 public:  
+  vector<Node* > _subNodes;//size: 4, if octtree, then, 8
   Rect  _bd;
 };
+
+void Output_BFS(Node* root)
+{
+  queue<Node* > que;
+  que.push(root);   
+  while(!que.empty())
+  {
+    Node* nd = que.front();
+    que.pop();
+    nd->Output();      
+    for(size_t i=0; i<nd->_subNodes.size(); i++)
+    {
+      que.push(nd->_subNodes[i]);
+    }
+  }
+}
 
 int main()
 {
   Node* qtree = new Node(5,5,5,5);//0,0,1000,1000 square
   
-  qtree->Insert(new Rect(3,3,3,3));
-  qtree->Insert(new Rect(4,4,4,4));
-  qtree->Insert(new Rect(4,4,2,1));
-  qtree->Insert(new Rect(1,1,5,5));  
+  qtree->Insert(new Rect(3,3,0.5,0.5));
+  qtree->Insert(new Rect(8,8,0.5,0.5));
+  qtree->Insert(new Rect(7,7,0.5,0.5));
+  qtree->Insert(new Rect(8,3,0.5,0.5));
+  qtree->Insert(new Rect(4,2,0.5,0.5));
+  qtree->Insert(new Rect(3,8,0.5,0.5));
+  qtree->Insert(new Rect(8.3,8.3,0.5,0.5));
+  qtree->Insert(new Rect(8,6,0.5,0.5));
+  qtree->Insert(new Rect(4.8,4.8,0.5,0.5));
+  
+  Output_BFS(qtree);
+  
+  cout << endl;
+  cout << "search (8.4, 8.45)" << endl;
+  Rect* rt = qtree->Search(8.4,8.45);
+  if(rt != NULL)
+    cout << rt->ctX << "\t" << rt->ctY;
+  else
+    cout << "found nothing!"<<endl;
 }
